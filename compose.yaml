@@ -1,0 +1,135 @@
+name: wordpress
+# default name is `basename $PWD`
+
+# =====================================
+services:
+
+# set these in .env file:
+#  - DB_NAME=exampledb
+#  - DB_USER=exampleuser
+#  - DB_PASS=examplepass
+
+  # -----------------------------------
+  wp-app:
+    container_name: wp-app
+    #build:
+    #  dockerfile: Dockerfile.wp
+    image: wordpress:6.5-php8.3-fpm-alpine
+    restart: unless-stopped
+    depends_on:
+      wait-for-db:
+        condition: service_completed_successfully
+
+    environment:
+      WORDPRESS_DB_HOST: wp-db
+      WORDPRESS_DB_NAME: ${DB_NAME}
+      WORDPRESS_DB_USER: ${DB_USER}
+      WORDPRESS_DB_PASSWORD: ${DB_PASS}
+
+    volumes:
+      - webroot:/var/www/html
+    networks:
+      - wpnet
+
+    # WordPress needs to see itself on port 80; how?
+#    extra_hosts:
+#      - localhost:wp-web
+#    network_mode: service:wp-web
+#    network_mode: host
+
+  # -----------------------------------
+  wp-cli:
+    container_name: wp-cli
+    image: wordpress:cli-2.10-php8.3
+    depends_on:
+      - wp-app
+
+    environment:
+      WORDPRESS_DB_HOST: wp-db
+      WORDPRESS_DB_NAME: ${DB_NAME}
+      WORDPRESS_DB_USER: ${DB_USER}
+      WORDPRESS_DB_PASSWORD: ${DB_PASS}
+
+    volumes:
+      - webroot:/var/www/html
+      - ./wp-cli-setup.sh:/wp-cli-setup.sh
+    networks:
+      - wpnet
+
+    command: /wp-cli-setup.sh
+
+  # -----------------------------------
+  wp-web:
+    container_name: wp-web
+    image: nginx:1.26-alpine
+    restart: unless-stopped
+    depends_on:
+      wp-app:
+        condition: service_started
+      wp-cli:
+        condition: service_completed_successfully
+
+    ports:
+      - 80:80
+    volumes:
+# TODO: in the container wordpress.conf is owned by nonexistent user
+#  - can we somehow fool it into chowning root:root without doing so outside container?
+      - ./wordpress.conf:/etc/nginx/conf.d/default.conf
+      - webroot:/var/www/html
+    networks:
+      - wpnet
+
+  # -----------------------------------
+  wp-db:
+    container_name: wp-db
+    image: mariadb:11.3
+    restart: unless-stopped
+
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASS}
+      MYSQL_RANDOM_ROOT_PASSWORD: '1'
+      # TODO: how to find it; or just set it explicitly
+
+    volumes:
+      - dbvol:/var/lib/mysql
+    networks:
+      - wpnet
+
+  # -----------------------------------
+  wait-for-db:
+    container_name: wait-for-db
+    image: atkrad/wait4x:2.14
+    depends_on:
+      - wp-db
+    networks:
+      - wpnet
+    command: mysql --timeout=0 "$DB_USER:$DB_PASS@tcp(wp-db)/$DB_NAME"
+
+  # -----------------------------------
+  # certbot:
+  #   image: certbot/cloudflare-dns
+
+  # -----------------------------------
+  # tunnel:
+  #   container_name: cloudflared-tunnel
+  #   image: cloudfare/cloudflared
+  #   restart: unless-stopped
+
+  #   command: tunnel run
+  #   environment:
+  #     - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+  #   # or (with .json & config.yml)
+  #   # command: tunnel run MY_TUNNEL_NAME
+  #   # volumes:
+  #   #   - cloudflared:/etc/cloudflared
+
+# =====================================
+volumes:
+  webroot:
+  dbvol:
+
+networks:
+  wpnet:
+    name: wpnet
