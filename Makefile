@@ -25,6 +25,8 @@ dbdump:
 	docker run --rm -it --network=wpnet \
 	  mariadb:11.3 \
 	  mariadb-dump --protocol=tcp --host=wp-db --user=${DB_USER} --password=${DB_PASS} ${DB_NAME}
+# or
+#	docker exec -it wordpress_wp-db mariaddb-dump --password ${DB_NAME}
 
 clean: down
 	docker volume rm wordpress_dbvol wordpress_webroot

@@ -1,3 +1,5 @@
+# loosly based upon https://www.digitalocean.com/community/tutorials/how-to-install-wordpress-with-docker-compose
+
 name: wordpress
 # default name is `basename $PWD`
 
@@ -93,7 +95,7 @@ services:
       MYSQL_DATABASE: ${DB_NAME}
       MYSQL_USER: ${DB_USER}
       MYSQL_PASSWORD: ${DB_PASS}
-      MYSQL_RANDOM_ROOT_PASSWORD: '1'
+      MARIADB_RANDOM_ROOT_PASSWORD: '1'
       # TODO: how to find it; or just set it explicitly
 
     volumes:
@@ -113,7 +115,7 @@ services:
 
   # -----------------------------------
   # certbot:
-  #   image: certbot/cloudflare-dns
+  #   image: certbot/dns-cloudflare
 
   # -----------------------------------
   # tunnel:

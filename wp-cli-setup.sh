@@ -6,6 +6,7 @@ set -x
 
 #if ! wp core is-installed
 #then
+#    wp core install --url=wp-web --title='Test Site' --admin_user=adminuser \
     wp core install --url=localhost --title='Test Site' --admin_user=adminuser \
         --skip-email --admin_email=bozo@example.com
     # TODO: trap the auto-generated password; or set it expicitly
