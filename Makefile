@@ -29,4 +29,4 @@ dbdump:
 #	docker exec -it wordpress_wp-db mariaddb-dump --password ${DB_NAME}
 
 clean: down
-	docker volume rm wordpress_dbvol wordpress_webroot
+	docker volume rm wordpress_dbvol
